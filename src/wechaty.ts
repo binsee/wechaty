@@ -20,12 +20,13 @@
 import cuid             from 'cuid'
 import os               from 'os'
 
-import { StateSwitch }      from 'state-switch'
 import { instanceToClass }  from 'clone-class'
+
 import {
   Puppet,
 
   MemoryCard,
+  StateSwitch,
 
   PUPPET_EVENT_DICT,
   PuppetEventName,
@@ -133,7 +134,9 @@ const PUPPET_MEMORY_NAME = 'puppet'
  */
 class Wechaty extends WechatyEventEmitter implements Sayable {
 
-  public static readonly VERSION = VERSION
+  static readonly VERSION = VERSION
+  static readonly log = log
+  readonly log = log
 
   public  readonly state      : StateSwitch
   private readonly readyState : StateSwitch
@@ -173,16 +176,16 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
   protected wechatifiedTag?            : typeof Tag
   protected wechatifiedUrlLink?        : typeof UrlLink
 
-  public get Contact ()        : typeof Contact         { return guardWechatify(this.wechatifiedContact)        }
-  public get ContactSelf ()    : typeof ContactSelf     { return guardWechatify(this.wechatifiedContactSelf)    }
-  public get Friendship ()     : typeof Friendship      { return guardWechatify(this.wechatifiedFriendship)     }
-  public get Image ()          : typeof Image           { return guardWechatify(this.wechatifiedImage)          }
-  public get Message ()        : typeof Message         { return guardWechatify(this.wechatifiedMessage)        }
-  public get MiniProgram ()    : typeof MiniProgram     { return guardWechatify(this.wechatifiedMiniProgram)    }
-  public get Room ()           : typeof Room            { return guardWechatify(this.wechatifiedRoom)           }
-  public get RoomInvitation () : typeof RoomInvitation  { return guardWechatify(this.wechatifiedRoomInvitation) }
-  public get Tag ()            : typeof Tag             { return guardWechatify(this.wechatifiedTag)            }
-  public get UrlLink ()        : typeof UrlLink         { return guardWechatify(this.wechatifiedUrlLink)        }
+  get Contact ()        : typeof Contact         { return guardWechatify(this.wechatifiedContact)        }
+  get ContactSelf ()    : typeof ContactSelf     { return guardWechatify(this.wechatifiedContactSelf)    }
+  get Friendship ()     : typeof Friendship      { return guardWechatify(this.wechatifiedFriendship)     }
+  get Image ()          : typeof Image           { return guardWechatify(this.wechatifiedImage)          }
+  get Message ()        : typeof Message         { return guardWechatify(this.wechatifiedMessage)        }
+  get MiniProgram ()    : typeof MiniProgram     { return guardWechatify(this.wechatifiedMiniProgram)    }
+  get Room ()           : typeof Room            { return guardWechatify(this.wechatifiedRoom)           }
+  get RoomInvitation () : typeof RoomInvitation  { return guardWechatify(this.wechatifiedRoomInvitation) }
+  get Tag ()            : typeof Tag             { return guardWechatify(this.wechatifiedTag)            }
+  get UrlLink ()        : typeof UrlLink         { return guardWechatify(this.wechatifiedUrlLink)        }
 
   /**
    * Get the global instance of Wechaty
@@ -311,7 +314,7 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
   /**
    * @ignore
    */
-  public toString () {
+  public override toString () {
     if (!this.options) {
       return this.constructor.name
     }
@@ -332,7 +335,7 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
     return this.options.name || 'wechaty'
   }
 
-  public on (event: WechatyEventName, listener: (...args: any[]) => any): this {
+  public override on (event: WechatyEventName, listener: (...args: any[]) => any): this {
     log.verbose('Wechaty', 'on(%s, listener) registering... listenerCount: %s',
       event,
       this.listenerCount(event),
@@ -454,39 +457,55 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
         case 'friendship':
           puppet.on('friendship', async payload => {
             const friendship = this.Friendship.load(payload.friendshipId)
-            await friendship.ready()
-            this.emit('friendship', friendship)
-            friendship.contact().emit('friendship', friendship)
+            try {
+              await friendship.ready()
+              this.emit('friendship', friendship)
+              friendship.contact().emit('friendship', friendship)
+            } catch (e) {
+              this.emit('error', e)
+            }
           })
           break
 
         case 'login':
           puppet.on('login', async payload => {
             const contact = this.ContactSelf.load(payload.contactId)
-            await contact.ready()
-            this.emit('login', contact)
+            try {
+              await contact.ready()
+              this.emit('login', contact)
+            } catch (e) {
+              this.emit('error', e)
+            }
           })
           break
 
         case 'logout':
           puppet.on('logout', async payload => {
             const contact = this.ContactSelf.load(payload.contactId)
-            await contact.ready()
-            this.emit('logout', contact, payload.data)
+            try {
+              await contact.ready()
+              this.emit('logout', contact, payload.data)
+            } catch (e) {
+              this.emit('error', e)
+            }
           })
           break
 
         case 'message':
           puppet.on('message', async payload => {
             const msg = this.Message.load(payload.messageId)
-            await msg.ready()
-            this.emit('message', msg)
+            try {
+              await msg.ready()
+              this.emit('message', msg)
 
-            const room = msg.room()
-            if (room) {
-              room.emit('message', msg)
-            } else {
-              this.userSelf().emit('message', msg)
+              const room = msg.room()
+              if (room) {
+                room.emit('message', msg)
+              } else {
+                msg.talker().emit('message', msg)
+              }
+            } catch (e) {
+              this.emit('error', e)
             }
           })
           break
@@ -510,60 +529,71 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
         case 'room-join':
           puppet.on('room-join', async payload => {
             const room = this.Room.load(payload.roomId)
-            await room.sync()
+            try {
+              await room.sync()
 
-            const inviteeList = payload.inviteeIdList.map(id => this.Contact.load(id))
-            await Promise.all(inviteeList.map(c => c.ready()))
+              const inviteeList = payload.inviteeIdList.map(id => this.Contact.load(id))
+              await Promise.all(inviteeList.map(c => c.ready()))
 
-            const inviter = this.Contact.load(payload.inviterId)
-            await inviter.ready()
-            const date = timestampToDate(payload.timestamp)
+              const inviter = this.Contact.load(payload.inviterId)
+              await inviter.ready()
+              const date = timestampToDate(payload.timestamp)
 
-            this.emit('room-join', room, inviteeList, inviter, date)
-            room.emit('join', inviteeList, inviter, date)
+              this.emit('room-join', room, inviteeList, inviter, date)
+              room.emit('join', inviteeList, inviter, date)
+            } catch (e) {
+              this.emit('error', e)
+            }
           })
           break
 
         case 'room-leave':
           puppet.on('room-leave', async payload => {
-            const room = this.Room.load(payload.roomId)
+            try {
+              const room = this.Room.load(payload.roomId)
 
-            /**
-             * See: https://github.com/wechaty/wechaty/pull/1833
-             */
-            await room.sync()
+              /**
+               * See: https://github.com/wechaty/wechaty/pull/1833
+               */
+              await room.sync()
 
-            const leaverList = payload.removeeIdList.map(id => this.Contact.load(id))
-            await Promise.all(leaverList.map(c => c.ready()))
+              const leaverList = payload.removeeIdList.map(id => this.Contact.load(id))
+              await Promise.all(leaverList.map(c => c.ready()))
 
-            const remover = this.Contact.load(payload.removerId)
-            await remover.ready()
-            const date = timestampToDate(payload.timestamp)
+              const remover = this.Contact.load(payload.removerId)
+              await remover.ready()
+              const date = timestampToDate(payload.timestamp)
 
-            this.emit('room-leave', room, leaverList, remover, date)
-            room.emit('leave', leaverList, remover, date)
+              this.emit('room-leave', room, leaverList, remover, date)
+              room.emit('leave', leaverList, remover, date)
 
-            // issue #254
-            const selfId = this.puppet.selfId()
-            if (selfId && payload.removeeIdList.includes(selfId)) {
-              await this.puppet.dirtyPayload(PayloadType.Room, payload.roomId)
-              await this.puppet.dirtyPayload(PayloadType.RoomMember, payload.roomId)
+              // issue #254
+              const selfId = this.puppet.selfId()
+              if (selfId && payload.removeeIdList.includes(selfId)) {
+                await this.puppet.dirtyPayload(PayloadType.Room, payload.roomId)
+                await this.puppet.dirtyPayload(PayloadType.RoomMember, payload.roomId)
+              }
+            } catch (e) {
+              this.emit('error', e)
             }
-
           })
           break
 
         case 'room-topic':
           puppet.on('room-topic', async payload => {
-            const room = this.Room.load(payload.roomId)
-            await room.sync()
+            try {
+              const room = this.Room.load(payload.roomId)
+              await room.sync()
 
-            const changer = this.Contact.load(payload.changerId)
-            await changer.ready()
-            const date = timestampToDate(payload.timestamp)
+              const changer = this.Contact.load(payload.changerId)
+              await changer.ready()
+              const date = timestampToDate(payload.timestamp)
 
-            this.emit('room-topic', room, payload.newTopic, payload.oldTopic, changer, date)
-            room.emit('topic', payload.newTopic, payload.oldTopic, changer, date)
+              this.emit('room-topic', room, payload.newTopic, payload.oldTopic, changer, date)
+              room.emit('topic', payload.newTopic, payload.oldTopic, changer, date)
+            } catch (e) {
+              this.emit('error', e)
+            }
           })
           break
 
@@ -582,28 +612,32 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
            * https://github.com/wechaty/wechaty-puppet-service/issues/43
            */
           puppet.on('dirty', async ({ payloadType, payloadId }) => {
-            switch (payloadType) {
-              case PayloadType.RoomMember:
-              case PayloadType.Contact:
-                await this.Contact.load(payloadId).sync()
-                break
-              case PayloadType.Room:
-                await this.Room.load(payloadId).sync()
-                break
+            try {
+              switch (payloadType) {
+                case PayloadType.RoomMember:
+                case PayloadType.Contact:
+                  await this.Contact.load(payloadId).sync()
+                  break
+                case PayloadType.Room:
+                  await this.Room.load(payloadId).sync()
+                  break
 
-              /**
-               * Huan(202008): noop for the following
-               */
-              case PayloadType.Friendship:
-                // Friendship has no payload
-                break
-              case PayloadType.Message:
-                // Message does not need to dirty (?)
-                break
+                /**
+                 * Huan(202008): noop for the following
+                 */
+                case PayloadType.Friendship:
+                  // Friendship has no payload
+                  break
+                case PayloadType.Message:
+                  // Message does not need to dirty (?)
+                  break
 
-              case PayloadType.Unknown:
-              default:
-                throw new Error('unknown payload type: ' + payloadType)
+                case PayloadType.Unknown:
+                default:
+                  throw new Error('unknown payload type: ' + payloadType)
+              }
+            } catch (e) {
+              this.emit('error', e)
             }
           })
           break
@@ -993,10 +1027,34 @@ class Wechaty extends WechatyEventEmitter implements Sayable {
   /**
    * @ignore
    */
-  public async reset (reason?: string): Promise<void> {
-    log.verbose('Wechaty', 'reset() because %s', reason || 'no reason')
-    await this.puppet.stop()
-    await this.puppet.start()
+  public reset (reason?: string): void {
+    log.verbose('Wechaty', 'reset() with reason: %s, call stack: %s',
+      reason || 'no reason',
+      // https://stackoverflow.com/a/2060330/1123955
+      new Error().stack,
+    )
+
+    this.puppet.stop()
+      .then(() => this.puppet.start())
+      .finally(() => {
+        log.verbose('Wechaty', 'reset() done.')
+      })
+      .catch(e => {
+        log.warn('Wechaty', 'reset() rejection: %s', e && e.message)
+
+        /**
+         * Dealing with https://github.com/wechaty/wechaty/issues/2197
+         */
+        setTimeout(
+          () => this.reset(),
+          Math.floor(
+            (
+              10 + 10 * Math.random()
+            ) * 1000
+          )
+        )
+
+      })
   }
 
   public unref (): void {

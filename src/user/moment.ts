@@ -23,8 +23,8 @@ import { Contact } from './contact'
 
 class Moment {
 
-  static get wechaty  (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
-  get wechaty        (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
+  static get wechaty  (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
+  get wechaty        (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
 
   public static post () {
     // post new moment
@@ -51,8 +51,8 @@ function wechatifyMoment (wechaty: Wechaty): typeof Moment {
 
   class WechatifiedMoment extends Moment {
 
-    static get wechaty  () { return wechaty }
-    get wechaty        () { return wechaty }
+    static override get wechaty  () { return wechaty }
+    override get wechaty        () { return wechaty }
 
   }
 

@@ -99,10 +99,12 @@ export class PuppetManager {
        */
 
       /**
-       * Huan(20210313)
+       * Huan(20210313) Issue #2151 - https://github.com/wechaty/wechaty/issues/2151
        *  error TS2511: Cannot create an instance of an abstract class.
+       *
+       * Huan(20210530): workaround by "as any"
        */
-      puppetInstance = new MyPuppet(options.puppetOptions)
+      puppetInstance = new (MyPuppet as any)(options.puppetOptions)
     }
 
     return puppetInstance
@@ -233,9 +235,9 @@ export class PuppetManager {
     }
 
     // https://github.com/GoogleChrome/puppeteer/issues/1597#issuecomment-351945645
-    if (gfw && !process.env.PUPPETEER_DOWNLOAD_HOST) {
+    if (gfw && !process.env['PUPPETEER_DOWNLOAD_HOST']) {
       log.info('PuppetManager', 'preInstallPuppeteer() set PUPPETEER_DOWNLOAD_HOST=https://npm.taobao.org/mirrors/')
-      process.env.PUPPETEER_DOWNLOAD_HOST = 'https://npm.taobao.org/mirrors/'
+      process.env['PUPPETEER_DOWNLOAD_HOST'] = 'https://npm.taobao.org/mirrors/'
     }
   }
 

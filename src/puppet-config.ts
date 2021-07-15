@@ -44,15 +44,15 @@ export const PUPPET_DEPENDENCIES = {
   /**
    * Wechaty Internal Puppets: dependency by package.json
    */
-  'wechaty-puppet-service' : '*',   // https://www.npmjs.com/package/wechaty-puppet-service
-  'wechaty-puppet-mock'    : '*',   // https://www.npmjs.com/package/wechaty-puppet-mock
+  'wechaty-puppet-service' : '>=0.23',   // https://www.npmjs.com/package/wechaty-puppet-service
+  'wechaty-puppet-mock'    : '>=0.29',   // https://www.npmjs.com/package/wechaty-puppet-mock
 
   /**
    * WeChat External Puppets
    */
   'wechaty-puppet-wechat'           : '>=0.28',  // https://www.npmjs.com/package/wechaty-puppet-wechat
   'wechaty-puppet-wechat4u'         : '>=0.17',  // https://www.npmjs.com/package/wechaty-puppet-wechat4u
-  'wechaty-puppet-padlocal'         : '>=0.2',   // https://www.npmjs.com/package/wechaty-puppet-padlocal
+  'wechaty-puppet-padlocal'         : '>=0.4.1',   // https://www.npmjs.com/package/wechaty-puppet-padlocal
   'wechaty-puppet-official-account' : '>=0.5',   // https://www.npmjs.com/package/wechaty-puppet-official-account
 
   /**

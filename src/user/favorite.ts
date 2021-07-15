@@ -24,8 +24,8 @@ import { log }        from '../config'
 
 class Favorite {
 
-  static get wechaty  (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
-  get wechaty        (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
+  static get wechaty  (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
+  get wechaty        (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
 
   public static list (): Favorite[] {
     return []
@@ -75,8 +75,8 @@ function wechatifyFavorite (wechaty: Wechaty): typeof Favorite {
 
   class WechatifiedFavorite extends Favorite {
 
-    static get wechaty  () { return wechaty }
-    get wechaty        () { return wechaty }
+    static override get wechaty () { return wechaty }
+    override get wechaty        () { return wechaty }
 
   }
 

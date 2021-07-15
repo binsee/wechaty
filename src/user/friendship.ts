@@ -68,8 +68,8 @@ type FriendshipAddOptions = string | FriendshipAddOptionsObject
  */
 class Friendship extends EventEmitter implements Acceptable {
 
-  static get wechaty  (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
-  get wechaty        (): Wechaty { throw new Error('This class can not be used directory. See: https://github.com/wechaty/wechaty/issues/2027') }
+  static get wechaty  (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
+  get wechaty        (): Wechaty { throw new Error('This class can not be used directly. See: https://github.com/wechaty/wechaty/issues/2027') }
 
   public static Type = FriendshipType
 
@@ -201,7 +201,7 @@ class Friendship extends EventEmitter implements Acceptable {
     }
   }
 
-  public toString () {
+  public override toString () {
     if (!this.payload) {
       return this.constructor.name
     }
@@ -444,8 +444,8 @@ function wechatifyFriendship (wechaty: Wechaty): typeof Friendship {
 
   class WechatifiedFriendship extends Friendship {
 
-    static get wechaty  () { return wechaty }
-    get wechaty        () { return wechaty }
+    static override get wechaty  () { return wechaty }
+    override get wechaty        () { return wechaty }
 
   }
 

@@ -14,8 +14,8 @@ declare module 'json-rpc-peer' {
 
   export * from 'json-rpc-protocol'
 
-  declare module 'json-rpc-peer' {
-    export class Peer extends EventEmitter implements NodeJS.WritableStream {
+  module 'json-rpc-peer' {
+    export default class Peer extends EventEmitter implements NodeJS.WritableStream {
 
       constructor(onmessage?: (message: JsonRpcPayload, data: any) => Promise<any>)
 
@@ -63,7 +63,7 @@ declare module 'json-rpc-peer' {
 
     }
 
-    export default Peer
+//     export default Peer
   }
 
 }
